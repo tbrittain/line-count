@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/storage/memory"
+	"io"
 	"os"
 )
 
@@ -39,48 +41,61 @@ func main() {
 	dir, err := w.Filesystem.ReadDir(".")
 	handleError(err)
 
-	navigateDir(dir)
+	var results []result
+
+	navigateDir(dir, &results)
+	fmt.Printf("%v", results)
 }
 
-func navigateDir(dir []os.FileInfo) {
+func navigateDir(dir []os.FileInfo, results *[]result) {
 	for _, file := range dir {
 		fmt.Println("file: ", file.Name())
 		fmt.Println("file.IsDir(): ", file.IsDir())
 
 		if file.IsDir() {
 			fmt.Println("inside if")
-			newDir, err := fs.ReadDir(file.Name())
+			newDir, err := fs.ReadDir("/" + file.Name())
 			handleError(err)
 			fmt.Println("newDir: ", newDir)
-			navigateDir(newDir)
+			navigateDir(newDir, results)
 		} else {
-			fmt.Println(file.Name())
+			openedFile, err := fs.OpenFile(file.Name(), os.O_RDONLY, 0666)
+			if err != nil {
+				fmt.Println("error opening file: ", err)
+				return
+			}
+
+			numLines, err := countLines(openedFile)
+			*results = append(*results, result{file.Name(), numLines, file.Size(), err})
 		}
 	}
 }
 
-//func lineCounter(r io.Reader) (int, error) {
-//  buf := make([]byte, 32*1024)
-//  count := 0
-//  lineSep := []byte{'\n'}
-//
-//  for {
-//    c, err := r.Read(buf)
-//    count += bytes.Count(buf[:c], lineSep)
-//
-//    switch {
-//    case err == io.EOF:
-//      return count, nil
-//
-//    case err != nil:
-//      return count, err
-//    }
-//  }
-//}
+func countLines(file billy.File) (int, error) {
+	buf := new(bytes.Buffer)
+	_, err := io.Copy(buf, file)
+	if err != nil {
+		return 0, err
+	}
+
+	lineCounter := 0
+	for range bytes.Split(buf.Bytes(), []byte("\n")) {
+		lineCounter++
+	}
+	fmt.Println("lineCounter: ", lineCounter)
+	return lineCounter, nil
+}
 
 func handleError(err error) {
 	if err != nil {
 		fmt.Printf("%v", err)
 		os.Exit(1)
 	}
+}
+
+type result struct {
+	Name     string
+	NumLines int
+	Size     int64
+	Error    error
 }
