@@ -29,11 +29,7 @@ func main() {
 		Tags:     git.NoTags,
 		Depth:    1,
 	})
-
-	if err != nil {
-		fmt.Printf("%v", err)
-		return
-	}
+	handleErrorFatal(err)
 
 	w, err := r.Worktree()
 	handleErrorFatal(err)
@@ -56,7 +52,7 @@ func walkFileTreeAndAppendResults(fileSystem billy.Filesystem, results *[]FileRe
 			walkFileTreeAndAppendResults(fileSystem, results, path+fileName+"/")
 		} else {
 			fileExtension := filepath.Ext(fileName)
-			lang, ok := testFileExtension(fileExtension)
+			lang, ok := validateFileExtension(fileExtension)
 			if !ok {
 				continue
 			}
@@ -68,7 +64,14 @@ func walkFileTreeAndAppendResults(fileSystem billy.Filesystem, results *[]FileRe
 			}
 
 			numLines, err := countLines(openedFile)
-			*results = append(*results, FileResult{file.Name(), lang, numLines, file.Size(), err})
+			result := FileResult{
+				Filename: fileName,
+				Filetype: lang,
+				NumLines: numLines,
+				Size:     file.Size(),
+				Error:    err,
+			}
+			*results = append(*results, result)
 		}
 	}
 }
@@ -84,19 +87,17 @@ func countLines(file billy.File) (int, error) {
 	for range bytes.Split(buf.Bytes(), []byte("\n")) {
 		lineCounter++
 	}
-	fmt.Println("lineCounter: ", lineCounter)
+
 	return lineCounter, nil
 }
 
-func testFileExtension(fileExtension string) (*Language, bool) {
-	for _, lang := range SupportedLanguages {
-		for _, extension := range lang.Extensions {
-			if extension == fileExtension {
-				return &lang, true
-			}
-		}
+func validateFileExtension(fileExtension string) (*Language, bool) {
+	lang, ok := LanguageMap[fileExtension]
+	if !ok {
+		return nil, false
 	}
-	return nil, false
+
+	return &lang, true
 }
 
 func handleErrorFatal(err error) {
