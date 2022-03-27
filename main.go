@@ -9,10 +9,9 @@ import (
 	"github.com/go-git/go-git/v5/storage/memory"
 	"io"
 	"os"
+	"path/filepath"
 )
 
-// use https://github.com/go-git/go-git
-// https://github.com/go-git/go-git/pull/446/files#diff-15808dd1f39f7d3198c9803a02fc1222b866ad5705b5aea887bb6a89ad572223
 // https://golangbot.com/webassembly-using-go/
 
 var storer *memory.Storage
@@ -28,6 +27,7 @@ func main() {
 		URL:      repository,
 		Progress: os.Stdout,
 		Tags:     git.NoTags,
+		Depth:    1,
 	})
 
 	if err != nil {
@@ -36,37 +36,39 @@ func main() {
 	}
 
 	w, err := r.Worktree()
-	handleError(err)
+	handleErrorFatal(err)
 
-	dir, err := w.Filesystem.ReadDir(".")
-	handleError(err)
-
-	var results []result
+	var results []FileResult
 	path := "./"
 
-	navigateDir(dir, &results, path)
+	walkFileTreeAndAppendResults(w.Filesystem, &results, path)
 	fmt.Printf("%v", results)
 }
 
-func navigateDir(dir []os.FileInfo, results *[]result, path string) {
+func walkFileTreeAndAppendResults(fileSystem billy.Filesystem, results *[]FileResult, path string) {
+	dir, err := fileSystem.ReadDir(path)
+	handleErrorFatal(err)
+
 	for _, file := range dir {
 		fileName := file.Name()
 
 		if file.IsDir() {
-
-			newDir, err := fs.ReadDir(fileName)
-			handleError(err)
-
-			navigateDir(newDir, results, path+fileName+"/")
+			walkFileTreeAndAppendResults(fileSystem, results, path+fileName+"/")
 		} else {
-			openedFile, err := fs.OpenFile(path+fileName, os.O_RDONLY, 0666)
+			fileExtension := filepath.Ext(fileName)
+			lang, ok := testFileExtension(fileExtension)
+			if !ok {
+				continue
+			}
+
+			openedFile, err := fs.Open(path + fileName)
 			if err != nil {
 				fmt.Println("error opening file: ", err)
 				return
 			}
 
 			numLines, err := countLines(openedFile)
-			*results = append(*results, result{file.Name(), numLines, file.Size(), err})
+			*results = append(*results, FileResult{file.Name(), lang, numLines, file.Size(), err})
 		}
 	}
 }
@@ -86,15 +88,27 @@ func countLines(file billy.File) (int, error) {
 	return lineCounter, nil
 }
 
-func handleError(err error) {
+func testFileExtension(fileExtension string) (*Language, bool) {
+	for _, lang := range SupportedLanguages {
+		for _, extension := range lang.Extensions {
+			if extension == fileExtension {
+				return &lang, true
+			}
+		}
+	}
+	return nil, false
+}
+
+func handleErrorFatal(err error) {
 	if err != nil {
 		fmt.Printf("%v", err)
 		os.Exit(1)
 	}
 }
 
-type result struct {
-	Name     string
+type FileResult struct {
+	Filename string
+	Filetype *Language
 	NumLines int
 	Size     int64
 	Error    error
