@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
@@ -10,6 +11,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"sort"
 )
 
 // https://golangbot.com/webassembly-using-go/
@@ -38,7 +40,16 @@ func main() {
 	path := "./"
 
 	walkFileTreeAndAppendResults(w.Filesystem, &results, path)
-	fmt.Printf("%v", results)
+	jsonResults, err := json.Marshal(results)
+	handleErrorFatal(err)
+
+	fmt.Println(string(jsonResults))
+
+	aggregatedResults := aggregateResults(results)
+	jsonAggregatedResults, err := json.Marshal(aggregatedResults)
+	handleErrorFatal(err)
+
+	fmt.Println(string(jsonAggregatedResults))
 }
 
 func walkFileTreeAndAppendResults(fileSystem billy.Filesystem, results *[]FileResult, path string) {
@@ -100,6 +111,35 @@ func validateFileExtension(fileExtension string) (*Language, bool) {
 	return &lang, true
 }
 
+func aggregateResults(results []FileResult) []AggregatedResult {
+	var aggregatedResults []AggregatedResult
+
+	for _, result := range results {
+		found := false
+		for i, aggregatedResult := range aggregatedResults {
+			if aggregatedResult.Filetype.Name == result.Filetype.Name {
+				aggregatedResults[i].NumLines += result.NumLines
+				aggregatedResults[i].Size += result.Size
+				found = true
+			}
+		}
+
+		if !found {
+			aggregatedResults = append(aggregatedResults, AggregatedResult{
+				Filetype: result.Filetype,
+				NumLines: result.NumLines,
+				Size:     result.Size,
+			})
+		}
+	}
+
+	sort.Slice(aggregatedResults, func(i, j int) bool {
+		return aggregatedResults[i].NumLines > aggregatedResults[j].NumLines
+	})
+
+	return aggregatedResults
+}
+
 func handleErrorFatal(err error) {
 	if err != nil {
 		fmt.Printf("%v", err)
@@ -108,9 +148,15 @@ func handleErrorFatal(err error) {
 }
 
 type FileResult struct {
-	Filename string
-	Filetype *Language
-	NumLines int
-	Size     int64
-	Error    error
+	Filename string    `json:"filename"`
+	Filetype *Language `json:"filetype"`
+	NumLines int       `json:"num_lines"`
+	Size     int64     `json:"size"`
+	Error    error     `json:"error"`
+}
+
+type AggregatedResult struct {
+	Filetype *Language `json:"filetype"`
+	NumLines int       `json:"num_lines"`
+	Size     int64     `json:"size"`
 }

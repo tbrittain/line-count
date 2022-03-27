@@ -1,8 +1,8 @@
 package main
 
 type Language struct {
-	Name  string
-	Color string
+	Name  string `json:"name"`
+	Color string `json:"color"`
 }
 
 var typeScript = Language{
