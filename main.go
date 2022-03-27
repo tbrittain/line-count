@@ -42,24 +42,24 @@ func main() {
 	handleError(err)
 
 	var results []result
+	path := "./"
 
-	navigateDir(dir, &results)
+	navigateDir(dir, &results, path)
 	fmt.Printf("%v", results)
 }
 
-func navigateDir(dir []os.FileInfo, results *[]result) {
+func navigateDir(dir []os.FileInfo, results *[]result, path string) {
 	for _, file := range dir {
-		fmt.Println("file: ", file.Name())
-		fmt.Println("file.IsDir(): ", file.IsDir())
+		fileName := file.Name()
 
 		if file.IsDir() {
-			fmt.Println("inside if")
-			newDir, err := fs.ReadDir("/" + file.Name())
+
+			newDir, err := fs.ReadDir(fileName)
 			handleError(err)
-			fmt.Println("newDir: ", newDir)
-			navigateDir(newDir, results)
+
+			navigateDir(newDir, results, path+fileName+"/")
 		} else {
-			openedFile, err := fs.OpenFile(file.Name(), os.O_RDONLY, 0666)
+			openedFile, err := fs.OpenFile(path+fileName, os.O_RDONLY, 0666)
 			if err != nil {
 				fmt.Println("error opening file: ", err)
 				return
