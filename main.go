@@ -2,8 +2,9 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
 	"fmt"
+	"github.com/aws/aws-lambda-go/events"
+	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/go-git/go-billy/v5"
 	"github.com/go-git/go-billy/v5/memfs"
 	"github.com/go-git/go-git/v5"
@@ -14,16 +15,37 @@ import (
 	"sort"
 )
 
-// https://golangbot.com/webassembly-using-go/
+// https://dev.to/hackersandslackers/deploy-serverless-golang-functions-with-netlify-4m3e
 
 var storer *memory.Storage
 var fs billy.Filesystem
 
 func main() {
+	lambda.Start(Handler)
+}
+
+func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
+	fmt.Println("Received body: ", request.Body)
+
+	if request.Body == "" {
+		return &events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       "Request body is empty",
+		}, nil
+	}
+
+	return &events.APIGatewayProxyResponse{
+		StatusCode: 200,
+		Body:       "Hello World",
+		Headers: map[string]string{
+			"Content-Type": "application/json",
+		},
+	}, nil
+}
+
+func getRepositorySummary(repository string) ([]AggregatedResult, error) {
 	storer = memory.NewStorage()
 	fs = memfs.New()
-
-	repository := "https://github.com/tbrittain/portfolio-site"
 
 	r, err := git.Clone(storer, fs, &git.CloneOptions{
 		URL:      repository,
@@ -31,36 +53,41 @@ func main() {
 		Tags:     git.NoTags,
 		Depth:    1,
 	})
-	handleErrorFatal(err)
+	if err != nil {
+		return nil, err
+	}
 
 	w, err := r.Worktree()
-	handleErrorFatal(err)
+	if err != nil {
+		return nil, err
+	}
 
 	var results []FileResult
 	path := "./"
 
-	walkFileTreeAndAppendResults(w.Filesystem, &results, path)
-	jsonResults, err := json.Marshal(results)
-	handleErrorFatal(err)
-
-	fmt.Println(string(jsonResults))
+	err = walkFileTreeAndAppendResults(w.Filesystem, &results, path)
+	if err != nil {
+		return nil, err
+	}
 
 	aggregatedResults := aggregateResults(results)
-	jsonAggregatedResults, err := json.Marshal(aggregatedResults)
-	handleErrorFatal(err)
-
-	fmt.Println(string(jsonAggregatedResults))
+	return aggregatedResults, nil
 }
 
-func walkFileTreeAndAppendResults(fileSystem billy.Filesystem, results *[]FileResult, path string) {
+func walkFileTreeAndAppendResults(fileSystem billy.Filesystem, results *[]FileResult, path string) error {
 	dir, err := fileSystem.ReadDir(path)
-	handleErrorFatal(err)
+	if err != nil {
+		return err
+	}
 
 	for _, file := range dir {
 		fileName := file.Name()
 
 		if file.IsDir() {
-			walkFileTreeAndAppendResults(fileSystem, results, path+fileName+"/")
+			err := walkFileTreeAndAppendResults(fileSystem, results, path+fileName+"/")
+			if err != nil {
+				return err
+			}
 		} else {
 			fileExtension := filepath.Ext(fileName)
 			lang, ok := validateFileExtension(fileExtension)
@@ -70,8 +97,7 @@ func walkFileTreeAndAppendResults(fileSystem billy.Filesystem, results *[]FileRe
 
 			openedFile, err := fs.Open(path + fileName)
 			if err != nil {
-				fmt.Println("error opening file: ", err)
-				return
+				return err
 			}
 
 			numLines, err := countLines(openedFile)
@@ -85,6 +111,8 @@ func walkFileTreeAndAppendResults(fileSystem billy.Filesystem, results *[]FileRe
 			*results = append(*results, result)
 		}
 	}
+
+	return nil
 }
 
 func countLines(file billy.File) (int, error) {
@@ -138,13 +166,6 @@ func aggregateResults(results []FileResult) []AggregatedResult {
 	})
 
 	return aggregatedResults
-}
-
-func handleErrorFatal(err error) {
-	if err != nil {
-		fmt.Printf("%v", err)
-		os.Exit(1)
-	}
 }
 
 type FileResult struct {
