@@ -16,6 +16,10 @@ import (
 )
 
 // https://dev.to/hackersandslackers/deploy-serverless-golang-functions-with-netlify-4m3e
+// https://docs.netlify.com/functions/build-with-go/#tools
+// https://github.com/futuregerald/go-lambda-netlify-local/blob/main/src/functions/testfunc1/testfunc1.go
+// https://github.com/futuregerald/next-function/blob/master/func_source/save.go
+// https://github.com/futuregerald/next-function
 
 var storer *memory.Storage
 var fs billy.Filesystem
