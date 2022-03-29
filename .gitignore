@@ -41,3 +41,6 @@ yarn-debug.log*
 yarn-error.log*
 build/
 /node_modules/
+
+# Local Netlify folder
+.netlify

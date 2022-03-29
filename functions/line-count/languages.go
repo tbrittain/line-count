@@ -170,6 +170,16 @@ var scss = Language{
 	"#c6538c",
 }
 
+var svelte = Language{
+	"Svelte",
+	"#ff3e00",
+}
+
+var vue = Language{
+	"Vue",
+	"#41b883",
+}
+
 var LanguageMap = map[string]Language{
 	".ts":       typeScript,
 	".tsx":      typeScript,
@@ -235,4 +245,6 @@ var LanguageMap = map[string]Language{
 	".hxx":      cpp,
 	".scss":     scss,
 	".sass":     scss,
+	".svelte":   svelte,
+	".vue":      vue,
 }

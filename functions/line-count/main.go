@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
@@ -12,6 +13,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 )
 
@@ -38,9 +40,43 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		}, nil
 	}
 
+	pattern := `((git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\-~]+)(\.git)(\/)?`
+	matched, err := regexp.MatchString(pattern, request.Body)
+	if err != nil {
+		return &events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       err.Error(),
+		}, nil
+	}
+
+	fmt.Println(matched)
+
+	if matched == false {
+		return &events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       "Invalid URL",
+		}, nil
+	}
+
+	result, err := getRepositorySummary(request.Body)
+	if err != nil {
+		return &events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       err.Error(),
+		}, nil
+	}
+
+	body, err := json.Marshal(result)
+	if err != nil {
+		return &events.APIGatewayProxyResponse{
+			StatusCode: 500,
+			Body:       err.Error(),
+		}, nil
+	}
+
 	return &events.APIGatewayProxyResponse{
 		StatusCode: 200,
-		Body:       "Hello World",
+		Body:       string(body),
 		Headers: map[string]string{
 			"Content-Type": "application/json",
 		},
