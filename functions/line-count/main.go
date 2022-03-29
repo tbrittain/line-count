@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/go-git/go-billy/v5"
@@ -17,12 +16,6 @@ import (
 	"sort"
 )
 
-// https://dev.to/hackersandslackers/deploy-serverless-golang-functions-with-netlify-4m3e
-// https://docs.netlify.com/functions/build-with-go/#tools
-// https://github.com/futuregerald/go-lambda-netlify-local/blob/main/src/functions/testfunc1/testfunc1.go
-// https://github.com/futuregerald/next-function/blob/master/func_source/save.go
-// https://github.com/futuregerald/next-function
-
 var storer *memory.Storage
 var fs billy.Filesystem
 
@@ -31,8 +24,6 @@ func main() {
 }
 
 func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	fmt.Println("Received body: ", request.Body)
-
 	if request.Body == "" {
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 400,
@@ -40,16 +31,24 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		}, nil
 	}
 
+	var data map[string]interface{}
+	err := json.Unmarshal([]byte(request.Body), &data)
+	if err != nil {
+		return &events.APIGatewayProxyResponse{
+			StatusCode: 400,
+			Body:       "Request body is not valid json",
+		}, nil
+	}
+
+	repoUrl := data["repoUrl"].(string)
 	pattern := `((git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\-~]+)(\.git)(\/)?`
-	matched, err := regexp.MatchString(pattern, request.Body)
+	matched, err := regexp.MatchString(pattern, repoUrl)
 	if err != nil {
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 500,
 			Body:       err.Error(),
 		}, nil
 	}
-
-	fmt.Println(matched)
 
 	if matched == false {
 		return &events.APIGatewayProxyResponse{
@@ -58,7 +57,7 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		}, nil
 	}
 
-	result, err := getRepositorySummary(request.Body)
+	result, err := getRepositorySummary(repoUrl)
 	if err != nil {
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 500,

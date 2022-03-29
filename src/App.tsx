@@ -1,15 +1,21 @@
-import React, {useEffect} from 'react';
+import React from 'react';
 import './App.css';
 import axios from 'axios';
 
 function App() {
-  // axios request on /api/line-count
   const [data, setData] = React.useState(null);
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState(null);
 
-  useEffect(() => {
-    axios.get('/api/line-count')
+  const [value, setValue] = React.useState('');
+
+  const onSubmit = () => {
+    setData(null);
+    setError(null);
+    setLoading(true);
+    axios.post('/api/line-count', {
+        repoUrl: value,
+    })
       .then(res => {
         setData(res.data);
         setLoading(false);
@@ -18,10 +24,12 @@ function App() {
         setError(err);
         setLoading(false);
       });
-  }, []);
+  }
 
   return (
     <div className="App">
+      <input type="text" placeholder="git repository..." value={value} onChange={e => setValue(e.target.value)}/>
+      <button type="submit" onClick={onSubmit}>Submit</button>
       <pre>
         {loading && 'Loading...'}
         {data && JSON.stringify(data, null, 2)}
