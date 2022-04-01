@@ -28,6 +28,9 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 400,
 			Body:       "Request body is empty",
+			Headers: map[string]string{
+				"Access-Control-Allow-Origin": "*",
+			},
 		}, nil
 	}
 
@@ -37,6 +40,9 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 400,
 			Body:       "Request body is not valid json",
+			Headers: map[string]string{
+				"Access-Control-Allow-Origin": "*",
+			},
 		}, nil
 	}
 
@@ -47,6 +53,9 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 500,
 			Body:       err.Error(),
+			Headers: map[string]string{
+				"Access-Control-Allow-Origin": "*",
+			},
 		}, nil
 	}
 
@@ -54,6 +63,9 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 400,
 			Body:       "Invalid URL",
+			Headers: map[string]string{
+				"Access-Control-Allow-Origin": "*",
+			},
 		}, nil
 	}
 
@@ -62,6 +74,9 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 500,
 			Body:       err.Error(),
+			Headers: map[string]string{
+				"Access-Control-Allow-Origin": "*",
+			},
 		}, nil
 	}
 
@@ -70,6 +85,9 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 500,
 			Body:       err.Error(),
+			Headers: map[string]string{
+				"Access-Control-Allow-Origin": "*",
+			},
 		}, nil
 	}
 
@@ -77,7 +95,8 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		StatusCode: 200,
 		Body:       string(body),
 		Headers: map[string]string{
-			"Content-Type": "application/json",
+			"Content-Type":                "application/json",
+			"Access-Control-Allow-Origin": "*",
 		},
 	}, nil
 }
