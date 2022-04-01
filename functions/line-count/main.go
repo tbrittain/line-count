@@ -28,6 +28,9 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 400,
 			Body:       "No url parameter passed",
+			Headers: map[string]string{
+				"Access-Control-Allow-Origin": "*",
+			},
 		}, nil
 	}
 
