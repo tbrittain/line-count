@@ -24,7 +24,7 @@ func main() {
 }
 
 func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	if request.PathParameters["url"] == "" {
+	if request.QueryStringParameters["url"] == "" {
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 400,
 			Body:       "No url parameter passed",
@@ -34,7 +34,7 @@ func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResp
 		}, nil
 	}
 
-	repoUrl := request.PathParameters["url"]
+	repoUrl := request.QueryStringParameters["url"]
 	pattern := `((git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\-~]+)(\.git)(\/)?`
 	matched, err := regexp.MatchString(pattern, repoUrl)
 	if err != nil {
