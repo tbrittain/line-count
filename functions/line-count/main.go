@@ -24,29 +24,14 @@ func main() {
 }
 
 func Handler(request events.APIGatewayProxyRequest) (*events.APIGatewayProxyResponse, error) {
-	if request.Body == "" {
+	if request.PathParameters["url"] == "" {
 		return &events.APIGatewayProxyResponse{
 			StatusCode: 400,
-			Body:       "Request body is empty",
-			Headers: map[string]string{
-				"Access-Control-Allow-Origin": "*",
-			},
+			Body:       "No url parameter passed",
 		}, nil
 	}
 
-	var data map[string]interface{}
-	err := json.Unmarshal([]byte(request.Body), &data)
-	if err != nil {
-		return &events.APIGatewayProxyResponse{
-			StatusCode: 400,
-			Body:       "Request body is not valid json",
-			Headers: map[string]string{
-				"Access-Control-Allow-Origin": "*",
-			},
-		}, nil
-	}
-
-	repoUrl := data["repoUrl"].(string)
+	repoUrl := request.PathParameters["url"]
 	pattern := `((git|ssh|http(s)?)|(git@[\w\.]+))(:(\/\/)?)([\w\.@\:\/\-~]+)(\.git)(\/)?`
 	matched, err := regexp.MatchString(pattern, repoUrl)
 	if err != nil {

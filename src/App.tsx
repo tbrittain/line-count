@@ -13,8 +13,10 @@ function App() {
     setData(null);
     setError(null);
     setLoading(true);
-    axios.post('/api/line-count', {
-        repoUrl: value,
+    axios.get('/api/line-count', {
+        params: {
+          url: value
+        }
     })
       .then(res => {
         setData(res.data);
