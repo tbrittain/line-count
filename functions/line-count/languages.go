@@ -180,6 +180,26 @@ var vue = Language{
 	"#41b883",
 }
 
+var nix = Language{
+	"Nix",
+	"#7e7eff",
+}
+
+var terraform = Language{
+	"Terraform",
+	"#cccccc",
+}
+
+var astro = Language{
+	"Astro",
+	"#ff5a03",
+}
+
+var codeQL = Language{
+	"CodeQL",
+	"#5a82a9",
+}
+
 var LanguageMap = map[string]Language{
 	".ts":       typeScript,
 	".tsx":      typeScript,
@@ -247,4 +267,8 @@ var LanguageMap = map[string]Language{
 	".sass":     scss,
 	".svelte":   svelte,
 	".vue":      vue,
+	".tf":       terraform,
+	".nix":      nix,
+	".astro":    astro,
+	".qll":      codeQL,
 }
